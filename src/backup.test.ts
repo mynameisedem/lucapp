@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { addEvent, db, runningTimers, startTimer, stopTimer } from './db'
+import { addEvent, db, nextBreastSide, runningTimers, startFeed, startTimer, stopTimer, switchSide } from './db'
 import { eventsCsv, exportJson, importJson } from './backup'
 
 beforeEach(async () => {
@@ -25,6 +25,20 @@ describe('db', () => {
     const saved = await db.events.get(a)
     expect(saved!.endTime).toBe(ev.startTime + 1000)
     expect('running' in saved!).toBe(false)
+  })
+})
+
+describe('breast side', () => {
+  it('offers the side not used last, from the latest feed', async () => {
+    expect(await nextBreastSide(1)).toBe('L')
+    const id = await startFeed(1) // L
+    const ev = (await db.events.get(id))!
+    if (ev.type !== 'BREAST') throw new Error()
+    await db.events.update(id, { payload: switchSide(ev.payload, 'R') }) // switched to R during the feed
+    await stopTimer((await db.events.get(id))!)
+    expect(await nextBreastSide(1)).toBe('L')
+    await startFeed(1)
+    expect(await nextBreastSide(1)).toBe('R')
   })
 })
 

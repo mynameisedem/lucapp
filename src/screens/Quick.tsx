@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
-import { startTimer } from '../db'
-import { startFeed } from './Home'
+import { startFeed, startTimer } from '../db'
 import { go, useChild } from '../App'
 import { useSettings } from '../settings'
 
@@ -11,7 +10,7 @@ export function Quick({ what }: { what?: string }) {
   useEffect(() => {
     if (what === 'sleep') startTimer(cid, 'SLEEP').then(() => go('/'))
     else if (what === 'feed' && s.feedDefault === 'BREAST')
-      startFeed(cid, s.lastBreastSide === 'L' ? 'R' : 'L').then(() => go('/'))
+      startFeed(cid).then(() => go('/'))
     else if (what === 'feed') go('/event/new/BOTTLE')
     else if (what === 'diaper') go('/event/new/DIAPER')
     else go('/')

@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { formatDistanceStrict } from 'date-fns'
-import { addEvent, db, EVENT_META, runningTimers, sideMs, startTimer, stopTimer, switchSide, type BabyEvent, type Child, type EventType } from '../db'
+import { addEvent, db, EVENT_META, nextBreastSide, runningTimers, startFeed, sideMs, startTimer, stopTimer, switchSide, type BabyEvent, type Child, type EventType } from '../db'
 import { go, useChild, useToast } from '../App'
 import { setSetting, useSettings } from '../settings'
 import { fmtClock, fmtTime } from '../format'
@@ -12,11 +12,6 @@ import { SyncLine } from './Settings'
 
 const DAY = 86_400_000
 type Panel = 'SLEEP' | 'BREAST' | 'DIAPER' | null
-
-export const startFeed = (childId: number, side: 'L' | 'R') => {
-  setSetting('lastBreastSide', side)
-  return startTimer(childId, 'BREAST', switchSide({ leftMs: 0, rightMs: 0, side: null, sideSince: null }, side))
-}
 
 export function Home({ kids }: { kids: Child[] }) {
   const child = useChild()
@@ -36,7 +31,7 @@ export function Home({ kids }: { kids: Child[] }) {
     setOpen(null)
     toast({ msg: `Diaper (${kind === 'dirty' ? 'poop' : kind}) logged`, undo: () => db.events.delete(id) })
   }
-  const nextSide: 'L' | 'R' = s.lastBreastSide === 'L' ? 'R' : 'L'
+  const nextSide = useLiveQuery(() => nextBreastSide(cid), [cid]) ?? 'L'
   const sideName = (sd: 'L' | 'R') => (sd === 'L' ? 'Left' : 'Right')
 
   const sleepPanel = () => {
@@ -156,7 +151,6 @@ function TimerBanner({ ev, now, onStopped }: { ev: BabyEvent; now: number; onSto
   const side = (sd: 'L' | 'R') => {
     if (ev.type !== 'BREAST') return
     const next = ev.payload.side === sd ? null : sd
-    if (next) setSetting('lastBreastSide', next)
     db.events.update(ev.id!, { payload: switchSide(ev.payload, next) })
   }
   return (

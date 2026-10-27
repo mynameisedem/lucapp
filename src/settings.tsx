@@ -13,7 +13,6 @@ export const DEFAULTS = {
   lastBackup: 0,
   pinHash: '',
   childId: 0,
-  lastBreastSide: 'L' as 'L' | 'R',
 }
 export type Settings = typeof DEFAULTS
 

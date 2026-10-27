@@ -5,7 +5,7 @@ export type EventType = 'SLEEP' | 'BREAST' | 'BOTTLE' | 'SOLIDS' | 'DIAPER' | 'P
 export interface Payloads {
   SLEEP: { location?: string }
   // Side timer is a timestamp (sideSince) so it survives reloads; leftMs/rightMs hold finished stretches.
-  BREAST: { leftMs: number; rightMs: number; side: 'L' | 'R' | null; sideSince: number | null }
+  BREAST: { leftMs: number; rightMs: number; side: 'L' | 'R' | null; sideSince: number | null; lastSide?: 'L' | 'R' }
   BOTTLE: { ml: number; contents: 'breast' | 'formula' }
   SOLIDS: { food: string }
   DIAPER: { kind: 'wet' | 'dirty' | 'both' }
@@ -152,8 +152,18 @@ export function switchSide(p: Payloads['BREAST'], side: 'L' | 'R' | null, at = D
   if (p.side && p.sideSince) next[p.side === 'L' ? 'leftMs' : 'rightMs'] += at - p.sideSince
   next.side = side
   next.sideSince = side ? at : null
+  if (side) next.lastSide = side
   return next
 }
+
+/** The side not used last, read from the latest feed so it is the same on every synced phone. */
+export async function nextBreastSide(childId: number): Promise<'L' | 'R'> {
+  const last = await db.events.where('[childId+type+startTime]').between([childId, 'BREAST', -Infinity], [childId, 'BREAST', Infinity]).last()
+  return last?.type === 'BREAST' && last.payload.lastSide === 'L' ? 'R' : 'L'
+}
+
+export const startFeed = async (childId: number, side?: 'L' | 'R') =>
+  startTimer(childId, 'BREAST', switchSide(defaultPayload('BREAST'), side ?? await nextBreastSide(childId)))
 
 export const sideMs = (p: Payloads['BREAST'], side: 'L' | 'R', now = Date.now()) =>
   (side === 'L' ? p.leftMs : p.rightMs) + (p.side === side && p.sideSince ? now - p.sideSince : 0)

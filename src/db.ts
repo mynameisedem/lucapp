@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from 'dexie'
+import Dexie, { type EntityTable, type Table, type Transaction } from 'dexie'
 
 export type EventType = 'SLEEP' | 'BREAST' | 'BOTTLE' | 'SOLIDS' | 'DIAPER' | 'PUMP' | 'MED' | 'ACTIVITY'
 
@@ -16,6 +16,7 @@ export interface Payloads {
 
 type EventOf<T extends EventType> = {
   id?: number
+  uid?: string // stable across phones; set by the creating hook
   childId: number
   type: T
   startTime: number // UTC epoch ms
@@ -29,8 +30,9 @@ type EventOf<T extends EventType> = {
 }
 export type BabyEvent = { [T in EventType]: EventOf<T> }[EventType]
 
-export interface Child { id?: number; name: string; birthDate: string /* yyyy-MM-dd */ }
-export interface Growth { id?: number; childId: number; date: string; weightGrams?: number; lengthMm?: number; headMm?: number }
+export interface Child { id?: number; uid?: string; updatedAt?: number; name: string; birthDate: string /* yyyy-MM-dd */ }
+export interface Growth { id?: number; uid?: string; updatedAt?: number; childId: number; date: string; weightGrams?: number; lengthMm?: number; headMm?: number }
+export interface Tombstone { uid: string; deletedAt: number }
 export interface Setting { key: string; value: unknown }
 
 export const TIMED: EventType[] = ['SLEEP', 'BREAST', 'PUMP']
@@ -62,6 +64,7 @@ export class LucaDB extends Dexie {
   events!: EntityTable<BabyEvent, 'id'>
   growth!: EntityTable<Growth, 'id'>
   settings!: EntityTable<Setting, 'key'>
+  deleted!: EntityTable<Tombstone, 'uid'>
 
   constructor(name = 'luca') {
     super(name)
@@ -72,8 +75,45 @@ export class LucaDB extends Dexie {
       growth: '++id, childId, date',
       settings: 'key',
     })
+    this.version(2).stores({
+      children: '++id, &uid, name, birthDate',
+      events: '++id, &uid, childId, type, startTime, endTime, running, [childId+startTime], [childId+type+startTime]',
+      growth: '++id, &uid, childId, date',
+      deleted: 'uid',
+    }).upgrade(tx => {
+      markSyncTx(tx) // keep original updatedAt
+      return Promise.all(['children', 'events', 'growth'].map(t =>
+        tx.table(t).toCollection().modify(r => { r.uid = crypto.randomUUID(); r.updatedAt ??= 0 })))
+    })
+
+    // Every local write stamps uid/updatedAt and logs deletes, so Drive sync can merge by uid.
+    // Sync's own transactions are marked and skipped, so merged rows keep their original stamps.
+    for (const table of [this.children, this.events, this.growth] as Table<{ uid?: string; updatedAt?: number }>[]) {
+      table.hook('creating', (_key, obj, tx) => {
+        if (isSyncTx(tx)) return
+        obj.uid ??= crypto.randomUUID()
+        obj.updatedAt = Date.now()
+        changes.dispatchEvent(new Event('change'))
+      })
+      table.hook('updating', (_mods, _key, _obj, tx) => {
+        if (isSyncTx(tx)) return
+        changes.dispatchEvent(new Event('change'))
+        return { updatedAt: Date.now() }
+      })
+      table.hook('deleting', (_key, obj, tx) => {
+        if (isSyncTx(tx) || !obj.uid) return
+        // shortcut: tombstone is written after the delete commits (hooks can't reach other tables); a crash in between could let sync resurrect the row
+        tx.on('complete', () => this.deleted.put({ uid: obj.uid!, deletedAt: Date.now() }).then(() => changes.dispatchEvent(new Event('change'))))
+      })
+    }
   }
 }
+
+/** Fires after any local (non-sync) write; drives sync-on-change. */
+export const changes = new EventTarget()
+const SYNC = Symbol('sync')
+export const markSyncTx = (tx: Transaction) => { (tx as unknown as Record<symbol, boolean>)[SYNC] = true }
+const isSyncTx = (tx: Transaction) => !!(tx as unknown as Record<symbol, boolean>)[SYNC]
 
 export const db = new LucaDB()
 

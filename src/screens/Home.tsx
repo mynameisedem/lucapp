@@ -8,6 +8,7 @@ import { fmtClock, fmtTime } from '../format'
 import { useNow } from '../hooks'
 import { suggestNap } from '../logic'
 import { describe } from './Timeline'
+import { SyncLine } from './Settings'
 
 const DAY = 86_400_000
 type Panel = 'SLEEP' | 'BREAST' | 'DIAPER' | null
@@ -73,6 +74,7 @@ export function Home({ kids }: { kids: Child[] }) {
             {kids.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
           </select>
         ) : <h1>{child.name}</h1>}
+        <SyncLine />
       </header>
 
       {backupDue && (

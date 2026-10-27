@@ -118,3 +118,5 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .huge { min-height: 6rem; font-size: 1.3rem; font-weight: 700; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
 .huge small { font-size: 1rem; font-weight: 500; font-variant-numeric: tabular-nums; }
 .timer .stop { flex: 1 1 100%; min-height: 3.5rem; }
+.sync-line { margin-left: auto; color: var(--muted); text-decoration: none; }
+header.row { justify-content: space-between; }

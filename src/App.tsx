@@ -9,6 +9,7 @@ import { Stats } from './screens/Stats'
 import { Growth } from './screens/Growth'
 import { Backup } from './screens/Backup'
 import { SettingsScreen, ChildForm, sha256 } from './screens/Settings'
+import { driveConfigured, signIn, useSyncStatus } from './drive'
 import { Quick } from './screens/Quick'
 
 export const go = (path: string) => { location.hash = '#' + path }
@@ -55,8 +56,7 @@ function Shell({ s }: { s: Settings }) {
   if (!children) return null
   if (s.pinHash && !unlocked) return <PinLock hash={s.pinHash} onOk={() => setUnlocked(true)} />
   if (!children.length)
-    return <main className="page"><h1>Welcome</h1><p>Add your baby to get started.</p>
-      <ChildForm onSaved={id => setSetting('childId', id)} /></main>
+    return <Welcome />
 
   const child = children.find(c => c.id === s.childId) ?? children[0]
   const [screen, ...args] = route
@@ -108,6 +108,26 @@ function WakeLock({ enabled, childId }: { enabled: boolean; childId: number }) {
     return () => { document.removeEventListener('visibilitychange', acquire); lock?.release() }
   }, [enabled, feeding])
   return null
+}
+
+function Welcome() {
+  const st = useSyncStatus()
+  return (
+    <main className="page">
+      <h1>Welcome</h1>
+      {driveConfigured && (
+        <section className="card">
+          <h2>Already using Luca on another phone?</h2>
+          {st.signedIn
+            ? <p>{st.syncing ? 'Loading data from Google Drive…' : st.error || 'No data found in Drive yet. Sync on the other phone first, or add your baby below.'}</p>
+            : <><p>Sign in with the same Google account to load its data.</p><button className="primary" onClick={signIn}>Sign in to Google</button></>}
+        </section>
+      )}
+      <h2>New here?</h2>
+      <p>Add your baby to get started.</p>
+      <ChildForm onSaved={id => setSetting('childId', id)} />
+    </main>
+  )
 }
 
 function PinLock({ hash, onOk }: { hash: string; onOk: () => void }) {

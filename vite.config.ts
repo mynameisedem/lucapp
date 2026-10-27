@@ -3,7 +3,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Build-only so dev HMR (websocket) keeps working; the shipped app may not talk to the network.
+// Build-only so dev HMR (websocket) keeps working; the shipped app may only talk to the Drive API.
 const csp: Plugin = {
   name: 'csp',
   apply: 'build',
@@ -11,7 +11,7 @@ const csp: Plugin = {
     tag: 'meta',
     attrs: {
       'http-equiv': 'Content-Security-Policy',
-      content: "default-src 'self'; connect-src 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'",
+      content: "default-src 'self'; connect-src https://www.googleapis.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'",
     },
     injectTo: 'head',
   }],

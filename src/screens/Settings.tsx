@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { db, type Child } from '../db'
 import { setSetting, useSettings, type Settings } from '../settings'
 import { useToast } from '../App'
+import { driveConfigured, signIn, signOut, syncNow, useSyncStatus } from '../drive'
+import { fmtTime } from '../format'
 
 export async function sha256(text: string) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
@@ -40,6 +42,9 @@ export function SettingsScreen({ kids }: { kids: Child[] }) {
         ? <ChildForm child={editing} onSaved={() => setEditing(null)} />
         : <button onClick={() => setEditing({ name: '', birthDate: '' })}>Add child</button>}
 
+      <h2>Google Drive sync</h2>
+      {driveConfigured ? <DriveSync /> : <p className="muted">Not set up in this build (needs VITE_GOOGLE_CLIENT_ID).</p>}
+
       <h2>Display</h2>
       {select('units', 'Units', [['metric', 'Metric (ml, kg, cm)'], ['imperial', 'Imperial (oz, lb, in)']])}
       {select('clock', 'Time format', [['24', '24-hour'], ['12', '12-hour']])}
@@ -75,5 +80,34 @@ export function ChildForm({ child = { name: '', birthDate: '' }, onSaved }: { ch
       <label>Birth date<input type="date" required value={c.birthDate} onChange={e => setC({ ...c, birthDate: e.target.value })} /></label>
       <button className="primary">Save</button>
     </form>
+  )
+}
+
+/** One-line sync state; tapping it signs in or syncs. */
+export function SyncLine() {
+  const s = useSettings()
+  const st = useSyncStatus()
+  if (!driveConfigured) return null
+  if (!st.signedIn) return <button className="link small" onClick={signIn}>☁️ Sync paused – tap to sign in to Google</button>
+  return (
+    <button className="link small sync-line" onClick={() => syncNow()} aria-label="Sync now">
+      ☁️ {st.syncing ? 'Syncing…' : st.error ? st.error : st.lastSync ? `Synced ${fmtTime(st.lastSync, s)}` : 'Not synced yet'}
+    </button>
+  )
+}
+
+function DriveSync() {
+  const st = useSyncStatus()
+  return (
+    <>
+      <p className="muted">Both phones sign in with the same Google account. Data is merged through one file in that account's Drive.</p>
+      <p><SyncLine /></p>
+      {st.error && <p className="error" role="alert">{st.error}</p>}
+      <div className="row">
+        {st.signedIn
+          ? <><button className="primary" disabled={st.syncing} onClick={() => syncNow()}>Sync now</button><button onClick={signOut}>Sign out</button></>
+          : <button className="primary" onClick={signIn}>Sign in to Google</button>}
+      </div>
+    </>
   )
 }

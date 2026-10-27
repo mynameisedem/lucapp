@@ -10,9 +10,9 @@ beforeEach(async () => {
 
 describe('db', () => {
   it('opens at the current schema with the indexes the app queries', () => {
-    expect(db.verno).toBe(1)
+    expect(db.verno).toBe(2)
     const idx = db.events.schema.indexes.map(i => i.name)
-    expect(idx).toEqual(expect.arrayContaining(['running', '[childId+startTime]', '[childId+type+startTime]']))
+    expect(idx).toEqual(expect.arrayContaining(['uid', 'running', '[childId+startTime]', '[childId+type+startTime]']))
   })
 
   it('keeps one sleep timer per child and clears the running flag on stop', async () => {

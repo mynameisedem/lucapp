@@ -8,6 +8,10 @@ Spec: `SPEC.md`. Stack: Vite, React, TypeScript, Dexie (IndexedDB), vite-plugin-
 - `npm test` – Vitest unit tests (TZ=Europe/Budapest for DST cases)
 - `npm run e2e` – Playwright, incl. offline check
 
+## Deploy
+- Push to `master` → GitHub Actions (`.github/workflows/pages.yml`) tests, builds and publishes to https://mynameisedem.github.io/lucapp/ ; phones update on next open while online
+- Client ID for CI is the repo variable `VITE_GOOGLE_CLIENT_ID`
+
 ## Rules
 - Bump `version` in package.json for each release to the phones (`npm version patch --no-git-tag-version`); it shows at the bottom of Home
 - No network requests at runtime except the Google Drive API (sync); no CDNs or Google scripts. CSP `connect-src https://www.googleapis.com` is injected at build (vite.config.ts)

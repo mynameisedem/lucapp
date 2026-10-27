@@ -1,4 +1,5 @@
-// Writes public/icon-192.png and icon-512.png (purple square, cream crescent) with no image deps.
+// Writes public/icon-192.png and icon-512.png (baby face on purple) with no image deps.
+// Features stay inside the central 80% so the icon also works as a maskable (circle/squircle) icon.
 import { deflateSync } from 'node:zlib'
 import { writeFileSync } from 'node:fs'
 
@@ -19,15 +20,36 @@ const chunk = (type, data) => {
   return Buffer.concat([len, td, c])
 }
 
+const BG = [76, 64, 160], SKIN = [255, 214, 170], EAR = [240, 190, 145], DARK = [60, 40, 40], CHEEK = [255, 160, 160], HAIR = [120, 80, 50], WHITE = [255, 255, 255]
+const d = (x, y, cx, cy) => Math.hypot(x - cx, y - cy)
+
+/** Color at unit coordinates (0..1); painter's order, last match wins. */
+function color(x, y) {
+  let c = BG
+  if (d(x, y, 0.2, 0.52) < 0.08 || d(x, y, 0.8, 0.52) < 0.08) c = EAR // ears
+  if (d(x, y, 0.5, 0.53) < 0.3) c = SKIN // face
+  if (d(x, y, 0.27, 0.62) < 0.055 || d(x, y, 0.73, 0.62) < 0.055) c = CHEEK
+  if (d(x, y, 0.37, 0.5) < 0.04 || d(x, y, 0.63, 0.5) < 0.04) c = DARK // eyes
+  if (d(x, y, 0.385, 0.485) < 0.013 || d(x, y, 0.645, 0.485) < 0.013) c = WHITE // eye shine
+  const r = d(x, y, 0.5, 0.6) // smile: lower part of a ring
+  if (r > 0.1 && r < 0.13 && y > 0.63) c = DARK
+  const cr = d(x, y, 0.53, 0.24) // hair curl: ring with a gap on the lower right
+  if (cr > 0.035 && cr < 0.065 && !(x > 0.53 && y > 0.24)) c = HAIR
+  return c
+}
+
+const SS = 4 // supersampling for smooth edges
 for (const size of [192, 512]) {
-  const raw = Buffer.alloc((size * 3 + 1) * size)
-  const r = size * 0.3, cx = size / 2, cy = size / 2
+  const stride = size * 3 + 1
+  const raw = Buffer.alloc(stride * size)
   for (let y = 0; y < size; y++) {
-    raw[y * (size * 3 + 1)] = 0
     for (let x = 0; x < size; x++) {
-      const inMoon = Math.hypot(x - cx, y - cy) < r && Math.hypot(x - cx - r * 0.5, y - cy + r * 0.3) > r * 0.8
-      const [R, G, B] = inMoon ? [255, 236, 200] : [76, 64, 160]
-      raw.set([R, G, B], y * (size * 3 + 1) + 1 + x * 3)
+      const acc = [0, 0, 0]
+      for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
+        const c = color((x + (sx + 0.5) / SS) / size, (y + (sy + 0.5) / SS) / size)
+        acc[0] += c[0]; acc[1] += c[1]; acc[2] += c[2]
+      }
+      raw.set(acc.map(v => Math.round(v / (SS * SS))), y * stride + 1 + x * 3)
     }
   }
   const ihdr = Buffer.alloc(13)

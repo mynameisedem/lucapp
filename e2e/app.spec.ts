@@ -59,7 +59,8 @@ test('breastfeeding offers the other side next', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^Left/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Stop' }).click()
   await page.getByRole('button', { name: 'Feed' }).click()
-  await expect(page.locator('.sides button').first()).toHaveText(/Start Right.*next side/) // last was Left
+  await expect(page.locator('.sides button').first()).toHaveText('Start Left') // fixed position
+  await expect(page.locator('.sides button').last()).toHaveText(/Start Right.*next side/) // last was Left
   await page.getByRole('link', { name: 'Timeline' }).click()
   await expect(page.locator('.list li')).toContainText('Breastfeed')
 })

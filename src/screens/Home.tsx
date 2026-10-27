@@ -47,7 +47,7 @@ export function Home({ kids }: { kids: Child[] }) {
     const ev = runningOf('BREAST')
     return ev ? <TimerBanner ev={ev} now={now} onStopped={() => setOpen(null)} /> : (
       <div className="sides">
-        {[nextSide, s.lastBreastSide].map(sd => (
+        {(['L', 'R'] as const).map(sd => (
           <button key={sd} className={sd === nextSide ? 'primary huge' : 'huge'} onClick={() => startFeed(cid, sd)}>
             Start {sideName(sd)}{sd === nextSide && <small>next side</small>}
           </button>

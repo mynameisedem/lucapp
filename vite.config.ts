@@ -2,6 +2,9 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
+
+const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
 
 // Build-only so dev HMR (websocket) keeps working; the shipped app may only talk to the Drive API.
 const csp: Plugin = {
@@ -19,6 +22,7 @@ const csp: Plugin = {
 
 export default defineConfig({
   base: './',
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [
     react(),
     csp,

@@ -120,3 +120,4 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .timer .stop { flex: 1 1 100%; min-height: 3.5rem; }
 .sync-line { margin-left: auto; color: var(--muted); text-decoration: none; }
 header.row { justify-content: space-between; }
+.version { text-align: center; }

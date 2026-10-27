@@ -9,6 +9,7 @@ Spec: `SPEC.md`. Stack: Vite, React, TypeScript, Dexie (IndexedDB), vite-plugin-
 - `npm run e2e` – Playwright, incl. offline check
 
 ## Rules
+- Bump `version` in package.json for each release to the phones (`npm version patch --no-git-tag-version`); it shows at the bottom of Home
 - No network requests at runtime except the Google Drive API (sync); no CDNs or Google scripts. CSP `connect-src https://www.googleapis.com` is injected at build (vite.config.ts)
 - Sync (`src/sync.ts`, `src/drive.ts`): rows carry `uid` + `updatedAt` stamped by Dexie hooks (db.ts), deletes leave tombstones in `deleted`; merge = newest wins per uid. Writes done by sync/restore/migration must run in a `markSyncTx` transaction. Settings are per phone and never synced
 - Drive needs `VITE_GOOGLE_CLIENT_ID` in `.env.local` at build time (see README)

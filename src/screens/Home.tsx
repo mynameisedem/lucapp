@@ -128,6 +128,7 @@ export function Home({ kids }: { kids: Child[] }) {
         </ul>
       </section>
       <p><a href="#/backup">Backup &amp; export</a></p>
+      <p className="version muted small">Luca v{__APP_VERSION__}</p>
     </>
   )
 }

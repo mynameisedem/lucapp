@@ -108,3 +108,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid #999; padding: .25rem .5rem; text-align: left; }
 }
+
+/* Expandable panels under Sleep / Feed / Diaper; dense flow backfills the row the panel splits. */
+.grid { grid-auto-flow: dense; }
+.panel { grid-column: 1 / -1; }
+.big-btn[aria-pressed='true'] { background: color-mix(in srgb, var(--c) 40%, var(--card)); }
+.sides { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; width: 100%; }
+.sides.three { grid-template-columns: repeat(3, 1fr); }
+.huge { min-height: 6rem; font-size: 1.3rem; font-weight: 700; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+.huge small { font-size: 1rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.timer .stop { flex: 1 1 100%; min-height: 3.5rem; }

@@ -89,7 +89,7 @@ function Form({ initial }: { initial: BabyEvent }) {
 
       {ev.type === 'SOLIDS' && <label>Food<input value={ev.payload.food} onChange={e => pay({ food: e.target.value })} /></label>}
 
-      {ev.type === 'DIAPER' && <Choice value={ev.payload.kind} options={[['wet', 'Wet'], ['dirty', 'Dirty'], ['both', 'Both']]} onChange={v => pay({ kind: v })} />}
+      {ev.type === 'DIAPER' && <Choice value={ev.payload.kind} options={[['wet', 'Wet'], ['dirty', 'Poop'], ['both', 'Both']]} onChange={v => pay({ kind: v })} />}
 
       {ev.type === 'PUMP' && (
         <div className="row">

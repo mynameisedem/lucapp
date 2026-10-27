@@ -15,13 +15,16 @@ async function setup(page: Page) {
 test('log diaper with undo, sleep timer survives reload', async ({ page }) => {
   const errors = await setup(page)
 
+  await page.getByRole('button', { name: 'Diaper' }).click()
   await page.getByRole('button', { name: 'Wet' }).click()
   await expect(page.getByRole('status')).toContainText('Diaper (wet) logged')
   await page.getByRole('button', { name: 'Undo' }).click()
 
+  await page.getByRole('button', { name: 'Diaper' }).click()
   await page.getByRole('button', { name: 'Both' }).click()
+  await page.getByRole('button', { name: 'Sleep', exact: true }).click()
   await page.getByRole('button', { name: 'Start sleep' }).click()
-  await expect(page.getByRole('button', { name: 'Sleeping…' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Start sleep' })).toBeHidden()
   await page.reload()
   await expect(page.getByRole('button', { name: 'Stop' })).toBeVisible()
   await page.getByRole('button', { name: 'Stop' }).click()
@@ -34,7 +37,7 @@ test('log diaper with undo, sleep timer survives reload', async ({ page }) => {
 
   // edit then delete with undo
   await items.last().click()
-  await page.getByRole('radio', { name: 'Dirty' }).click()
+  await page.getByRole('radio', { name: 'Poop' }).click()
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(items.last()).toContainText('dirty')
   await items.last().click()
@@ -46,13 +49,17 @@ test('log diaper with undo, sleep timer survives reload', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
-test('breastfeeding side timers', async ({ page }) => {
+test('breastfeeding offers the other side next', async ({ page }) => {
   await setup(page)
-  await page.getByRole('button', { name: 'Start feed' }).click()
-  await expect(page.getByRole('button', { name: /Left/ })).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: /Right/ }).click()
-  await expect(page.getByRole('button', { name: /Right/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Feed' }).click()
+  await expect(page.getByRole('button', { name: 'Stop' })).toBeHidden() // not started automatically
+  await page.getByRole('button', { name: /Start Right/ }).click()
+  await expect(page.getByRole('button', { name: /^Right/ })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: /^Left/ }).click()
+  await expect(page.getByRole('button', { name: /^Left/ })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Stop' }).click()
+  await page.getByRole('button', { name: 'Feed' }).click()
+  await expect(page.locator('.sides button').first()).toHaveText(/Start Right.*next side/) // last was Left
   await page.getByRole('link', { name: 'Timeline' }).click()
   await expect(page.locator('.list li')).toContainText('Breastfeed')
 })
@@ -64,7 +71,8 @@ test('works offline after first load', async ({ page, context }) => {
   await context.setOffline(true)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Luca' })).toBeVisible()
-  await page.getByRole('button', { name: 'Dirty' }).click()
+  await page.getByRole('button', { name: 'Diaper' }).click()
+  await page.getByRole('button', { name: 'Poop' }).click()
   await page.getByRole('link', { name: 'Stats' }).click()
   await expect(page.locator('.kv')).toContainText('0 wet · 1 dirty')
 })
@@ -72,5 +80,5 @@ test('works offline after first load', async ({ page, context }) => {
 test('shortcut starts sleep', async ({ page }) => {
   await setup(page)
   await page.goto('/#/quick/sleep')
-  await expect(page.getByRole('button', { name: 'Sleeping…' })).toBeVisible()
+  await expect(page.locator('.timer')).toContainText('Sleep')
 })

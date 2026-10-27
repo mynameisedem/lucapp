@@ -99,7 +99,7 @@ export function Home({ kids }: { kids: Child[] }) {
         <Big type="ACTIVITY" label="Activity" onClick={() => go('/event/new/ACTIVITY')} />
       </section>
 
-      {nap && (
+      {nap && (nap.sleeping || nap.to > now) && (
         <section className="card">
           <h2>Next nap</h2>
           {nap.sleeping ? <p>Sleeping now.</p> : (

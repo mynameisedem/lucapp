@@ -93,8 +93,8 @@ function Form({ initial }: { initial: BabyEvent }) {
 
       {ev.type === 'PUMP' && (
         <div className="row">
-          <Stepper label={`Left (${volUnit(s)})`} value={fromMl(ev.payload.leftMl, s)} step={s.units === 'imperial' ? 0.5 : s.bottleStepMl} onChange={v => pay({ leftMl: toMl(v, s) })} />
-          <Stepper label={`Right (${volUnit(s)})`} value={fromMl(ev.payload.rightMl, s)} step={s.units === 'imperial' ? 0.5 : s.bottleStepMl} onChange={v => pay({ rightMl: toMl(v, s) })} />
+          <Stepper label={`Left (${volUnit(s)})`} value={fromMl(ev.payload.leftMl, s)} step={s.units === 'imperial' ? 0.5 : 5} onChange={v => pay({ leftMl: toMl(v, s) })} />
+          <Stepper label={`Right (${volUnit(s)})`} value={fromMl(ev.payload.rightMl, s)} step={s.units === 'imperial' ? 0.5 : 5} onChange={v => pay({ rightMl: toMl(v, s) })} />
         </div>
       )}
 

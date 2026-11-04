@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { db, type Child } from '../db'
 import { setSetting, useSettings, type Settings } from '../settings'
 import { useToast } from '../App'
-import { driveConfigured, signIn, signOut, syncNow, useSyncStatus } from '../drive'
+import { keyEmail, removeKey, setKey, syncNow, useSyncStatus } from '../drive'
 import { fmtTime } from '../format'
 
 export async function sha256(text: string) {
@@ -43,7 +43,7 @@ export function SettingsScreen({ kids }: { kids: Child[] }) {
         : <button onClick={() => setEditing({ name: '', birthDate: '' })}>Add child</button>}
 
       <h2>Google Drive sync</h2>
-      {driveConfigured ? <DriveSync /> : <p className="muted">Not set up in this build (needs VITE_GOOGLE_CLIENT_ID).</p>}
+      <DriveSync />
 
       <h2>Display</h2>
       {select('units', 'Units', [['metric', 'Metric (ml, kg, cm)'], ['imperial', 'Imperial (oz, lb, in)']])}
@@ -87,8 +87,7 @@ export function ChildForm({ child = { name: '', birthDate: '' }, onSaved }: { ch
 export function SyncLine() {
   const s = useSettings()
   const st = useSyncStatus()
-  if (!driveConfigured) return null
-  if (!st.signedIn) return <button className="link small" onClick={signIn}>☁️ Sync paused – tap to sign in to Google</button>
+  if (!st.signedIn) return <a className="small" href="#/settings">☁️ Sync off – add the sync key in Settings</a>
   return (
     <button className="link small sync-line" onClick={() => syncNow()} aria-label="Sync now">
       ☁️ {st.syncing ? 'Syncing…' : st.error ? st.error : st.lastSync ? `Synced ${fmtTime(st.lastSync, s)}` : 'Not synced yet'}
@@ -96,18 +95,39 @@ export function SyncLine() {
   )
 }
 
+/** Picks the service account JSON key; also used on the welcome screen of a fresh install. */
+export function SyncKeyPicker() {
+  const [err, setErr] = useState('')
+  return (
+    <>
+      <label>Sync key (JSON file)
+        <input type="file" accept=".json,application/json" onChange={async e => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) { setErr(''); setKey(await f.text()).catch(x => setErr(x.message)) }
+        }} />
+      </label>
+      {err && <p className="error" role="alert">{err}</p>}
+    </>
+  )
+}
+
 function DriveSync() {
   const st = useSyncStatus()
   return (
     <>
-      <p className="muted">Both phones sign in with the same Google account. Data is merged through one file in that account's Drive.</p>
-      <p><SyncLine /></p>
-      {st.error && <p className="error" role="alert">{st.error}</p>}
-      <div className="row">
-        {st.signedIn
-          ? <><button className="primary" disabled={st.syncing} onClick={() => syncNow()}>Sync now</button><button onClick={signOut}>Sign out</button></>
-          : <button className="primary" onClick={signIn}>Sign in to Google</button>}
-      </div>
+      <p className="muted">Both phones use the same sync key (a Google service account). Data is merged through <b>luca-data.json</b>, shared with that account. No Google sign-in on the phones.</p>
+      {st.signedIn
+        ? <>
+          <p><SyncLine /></p>
+          <p className="muted small">Key: {keyEmail()}</p>
+          {st.error && <p className="error" role="alert">{st.error}</p>}
+          <div className="row">
+            <button className="primary" disabled={st.syncing} onClick={() => syncNow()}>Sync now</button>
+            <button onClick={removeKey}>Remove key</button>
+          </div>
+        </>
+        : <SyncKeyPicker />}
     </>
   )
 }

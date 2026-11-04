@@ -14,7 +14,7 @@ const csp: Plugin = {
     tag: 'meta',
     attrs: {
       'http-equiv': 'Content-Security-Policy',
-      content: "default-src 'self'; connect-src https://www.googleapis.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'",
+      content: "default-src 'self'; connect-src https://www.googleapis.com https://oauth2.googleapis.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'",
     },
     injectTo: 'head',
   }],

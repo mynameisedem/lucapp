@@ -2,59 +2,74 @@ import { useSyncExternalStore } from 'react'
 import { changes, db } from './db'
 import { sync, type RemoteIO, type SyncDoc } from './sync'
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
-const SCOPE = 'https://www.googleapis.com/auth/drive.file' // only files this app created
+const SCOPE = 'https://www.googleapis.com/auth/drive' // a service account only sees files shared with it
 const FILE_NAME = 'luca-data.json'
 const API = 'https://www.googleapis.com'
-export const driveConfigured = !!CLIENT_ID
+const TOKEN_URL = 'https://oauth2.googleapis.com/token'
 
-// Per-phone sign-in state lives in localStorage; it's not app data and must not be synced or backed up.
+// Per-phone credentials live in localStorage; they're not app data and must not be synced or backed up.
 const store = {
   get: (k: string) => { try { return localStorage.getItem('luca.' + k) } catch { return null } },
   set: (k: string, v: string | null) => { try { v === null ? localStorage.removeItem('luca.' + k) : localStorage.setItem('luca.' + k, v) } catch { /* private mode */ } },
 }
 
-export function token() {
+type ServiceKey = { client_email: string; private_key: string }
+const savedKey = (): ServiceKey | null => { try { return JSON.parse(store.get('saKey')!) } catch { return null } }
+export const hasKey = () => !!savedKey()
+export const keyEmail = () => savedKey()?.client_email ?? ''
+
+const b64url = (b: ArrayBuffer | string) =>
+  btoa(typeof b === 'string' ? b : String.fromCharCode(...new Uint8Array(b))).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+
+function importKey(pem: string) {
+  const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----|\s/g, '')), c => c.charCodeAt(0))
+  return crypto.subtle.importKey('pkcs8', der, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign'])
+}
+
+/** Trust boundary: the pasted file must be a Google service account JSON key with a usable private key. */
+export async function setKey(text: string) {
+  let k: ServiceKey & { type?: string }
+  try { k = JSON.parse(text) } catch { throw new Error('Not a JSON file') }
+  if (k?.type !== 'service_account' || typeof k.client_email !== 'string' || typeof k.private_key !== 'string')
+    throw new Error('Not a Google service account key')
+  try { await importKey(k.private_key) } catch { throw new Error('The private key in this file is invalid') }
+  store.set('saKey', JSON.stringify({ client_email: k.client_email, private_key: k.private_key }))
+  store.set('token', null)
+  setStatus({ error: '' })
+  syncNow()
+}
+
+/** Service account flow: sign a JWT with the key and swap it for a 1-hour access token. */
+async function token() {
   const t = store.get('token'), exp = Number(store.get('tokenExp'))
-  return t && exp > Date.now() + 60_000 ? t : null
-}
-
-/** Implicit OAuth flow by full-page redirect: no Google script is loaded, so the CSP stays tight. */
-export function signIn() {
-  const state = crypto.randomUUID()
-  sessionStorage.setItem('luca.oauthState', state)
-  sessionStorage.setItem('luca.route', location.hash)
-  const q = new URLSearchParams({
-    client_id: CLIENT_ID!, redirect_uri: location.origin + location.pathname, response_type: 'token',
-    scope: SCOPE, include_granted_scopes: 'true', state, ...(store.get('email') ? { login_hint: store.get('email')! } : {}),
+  if (t && exp > Date.now() + 60_000) return t
+  const key = savedKey()
+  if (!key) throw new NeedsKey()
+  const now = Math.floor(Date.now() / 1000)
+  const unsigned = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' })) + '.' +
+    b64url(JSON.stringify({ iss: key.client_email, scope: SCOPE, aud: TOKEN_URL, iat: now, exp: now + 3600 }))
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', await importKey(key.private_key), new TextEncoder().encode(unsigned))
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: unsigned + '.' + b64url(sig) }),
   })
-  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + q
+  if (!res.ok) throw new Error(`Google rejected the key (${res.status}); was it deleted?`)
+  const body = await res.json()
+  store.set('token', body.access_token)
+  store.set('tokenExp', String(Date.now() + Number(body.expires_in ?? 3600) * 1000))
+  return body.access_token as string
 }
 
-/** Call before the router reads location.hash: Google returns the token in the URL fragment. */
-export function handleOAuthRedirect() {
-  const h = new URLSearchParams(location.hash.slice(1))
-  if (!h.has('access_token') && !h.has('error')) return
-  const ok = h.get('state') === sessionStorage.getItem('luca.oauthState')
-  if (ok && h.get('access_token')) {
-    store.set('token', h.get('access_token'))
-    store.set('tokenExp', String(Date.now() + Number(h.get('expires_in') ?? 3600) * 1000))
-  } else setStatus({ error: ok ? `Google sign-in failed: ${h.get('error')}` : 'Google sign-in failed: state mismatch' })
-  history.replaceState(null, '', location.pathname + (sessionStorage.getItem('luca.route') || '#/'))
-}
-
-export function signOut() {
-  for (const k of ['token', 'tokenExp', 'fileId', 'lastSync']) store.set(k, null)
+export function removeKey() {
+  for (const k of ['saKey', 'token', 'tokenExp', 'fileId', 'lastSync']) store.set(k, null)
   setStatus({ error: '', lastSync: 0 })
 }
 
-class NeedsSignIn extends Error {}
+class NeedsKey extends Error {}
 
 async function api(path: string, init: RequestInit = {}) {
-  const t = token()
-  if (!t) throw new NeedsSignIn()
-  const res = await fetch(API + path, { ...init, headers: { ...init.headers, Authorization: 'Bearer ' + t } })
-  if (res.status === 401) { store.set('token', null); throw new NeedsSignIn() }
+  const res = await fetch(API + path, { ...init, headers: { ...init.headers, Authorization: 'Bearer ' + await token() } })
+  if (res.status === 401) store.set('token', null)
   return res
 }
 
@@ -76,19 +91,13 @@ export const driveIO: RemoteIO = {
     const res = await api(`/drive/v3/files/${id}?alt=media`)
     if (res.status === 404) { store.set('fileId', null); return driveIO.read() }
     if (!res.ok) throw new Error(`Drive download failed (${res.status})`)
-    return res.json()
+    const text = await res.text()
+    return text.trim() ? JSON.parse(text) : null // an empty shared file means no data yet
   },
   async write(doc: SyncDoc) {
-    let id = await findFile()
-    if (!id) {
-      const res = await api('/drive/v3/files?fields=id', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' }),
-      })
-      if (!res.ok) throw new Error(`Drive create failed (${res.status})`)
-      id = (await res.json()).id as string
-      store.set('fileId', id)
-    }
+    const id = await findFile()
+    // A service account has no storage of its own, so the file must be created by a person and shared with it.
+    if (!id) throw new Error(`Share ${FILE_NAME} in your Drive with ${keyEmail()}`)
     const res = await api(`/upload/drive/v3/files/${id}?uploadType=media`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(doc),
     })
@@ -98,19 +107,19 @@ export const driveIO: RemoteIO = {
 
 // --- status store for the UI ---
 type Status = { syncing: boolean; error: string; lastSync: number; signedIn: boolean }
-let status: Status = { syncing: false, error: '', lastSync: Number(store.get('lastSync')) || 0, signedIn: !!token() }
+let status: Status = { syncing: false, error: '', lastSync: Number(store.get('lastSync')) || 0, signedIn: hasKey() }
 const listeners = new Set<() => void>()
 function setStatus(p: Partial<Status>) {
-  status = { ...status, ...p, signedIn: !!token() }
+  status = { ...status, ...p, signedIn: hasKey() }
   listeners.forEach(l => l())
 }
 export const useSyncStatus = () => useSyncExternalStore(l => (listeners.add(l), () => listeners.delete(l)), () => status)
 
 let running: Promise<void> | null = null
 let again = false
-/** Safe to call often: concurrent calls coalesce into one extra run. Does nothing when signed out. */
+/** Safe to call often: concurrent calls coalesce into one extra run. Does nothing without a key. */
 export function syncNow(): Promise<void> {
-  if (!driveConfigured || !token()) { setStatus({}); return Promise.resolve() }
+  if (!hasKey()) { setStatus({}); return Promise.resolve() }
   if (running) { again = true; return running }
   setStatus({ syncing: true })
   running = sync(db, driveIO)
@@ -118,7 +127,7 @@ export function syncNow(): Promise<void> {
       store.set('lastSync', String(Date.now()))
       setStatus({ error: '', lastSync: Date.now() })
     })
-    .catch(e => setStatus({ error: e instanceof NeedsSignIn ? '' : navigator.onLine ? String(e.message ?? e) : 'Offline – will sync later' }))
+    .catch(e => setStatus({ error: e instanceof NeedsKey ? '' : navigator.onLine ? String(e.message ?? e) : 'Offline – will sync later' }))
     .finally(() => {
       running = null
       setStatus({ syncing: false })
@@ -129,7 +138,6 @@ export function syncNow(): Promise<void> {
 
 /** Sync on start, when the app comes to the foreground, every 2 minutes while open, and shortly after local edits. */
 export function startAutoSync() {
-  if (!driveConfigured) return
   let debounce: ReturnType<typeof setTimeout>
   changes.addEventListener('change', () => { clearTimeout(debounce); debounce = setTimeout(syncNow, 3000) })
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && syncNow())

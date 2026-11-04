@@ -10,13 +10,12 @@ Spec: `SPEC.md`. Stack: Vite, React, TypeScript, Dexie (IndexedDB), vite-plugin-
 
 ## Deploy
 - Push to `master` → GitHub Actions (`.github/workflows/pages.yml`) tests, builds and publishes to https://mynameisedem.github.io/lucapp/ ; phones update on next open while online
-- Client ID for CI is the repo variable `VITE_GOOGLE_CLIENT_ID`
 
 ## Rules
 - Bump `version` in package.json for each release to the phones (`npm version patch --no-git-tag-version`); it shows at the bottom of Home
-- No network requests at runtime except the Google Drive API (sync); no CDNs or Google scripts. CSP `connect-src https://www.googleapis.com` is injected at build (vite.config.ts)
+- No network requests at runtime except the Google Drive API + token endpoint (sync); no CDNs or Google scripts. CSP `connect-src https://www.googleapis.com https://oauth2.googleapis.com` is injected at build (vite.config.ts)
 - Sync (`src/sync.ts`, `src/drive.ts`): rows carry `uid` + `updatedAt` stamped by Dexie hooks (db.ts), deletes leave tombstones in `deleted`; merge = newest wins per uid. Writes done by sync/restore/migration must run in a `markSyncTx` transaction. Settings are per phone and never synced
-- Drive needs `VITE_GOOGLE_CLIENT_ID` in `.env.local` at build time (see README)
+- Drive auth is a service account JSON key picked per phone (localStorage, never synced); JWT signed with WebCrypto, swapped at oauth2.googleapis.com. It can't create files: `luca-data.json` is shared with it (see README)
 - Times are UTC epoch ms + `tz`; day boundaries via date-fns local math (DST-safe)
 - Timers are start timestamps (`endTime: null`, sparse `running: 1` index), never counters
 - Never edit a released Dexie `version(n)`; add `version(n+1)` with `upgrade()` and a test

@@ -8,8 +8,8 @@ import { EventEditor } from './screens/EventEditor'
 import { Stats } from './screens/Stats'
 import { Growth } from './screens/Growth'
 import { Backup } from './screens/Backup'
-import { SettingsScreen, ChildForm, sha256 } from './screens/Settings'
-import { driveConfigured, signIn, useSyncStatus } from './drive'
+import { SettingsScreen, ChildForm, SyncKeyPicker, sha256 } from './screens/Settings'
+import { useSyncStatus } from './drive'
 import { Quick } from './screens/Quick'
 
 export const go = (path: string) => { location.hash = '#' + path }
@@ -115,14 +115,12 @@ function Welcome() {
   return (
     <main className="page">
       <h1>Welcome</h1>
-      {driveConfigured && (
-        <section className="card">
-          <h2>Already using Luca on another phone?</h2>
-          {st.signedIn
-            ? <p>{st.syncing ? 'Loading data from Google Drive…' : st.error || 'No data found in Drive yet. Sync on the other phone first, or add your baby below.'}</p>
-            : <><p>Sign in with the same Google account to load its data.</p><button className="primary" onClick={signIn}>Sign in to Google</button></>}
-        </section>
-      )}
+      <section className="card">
+        <h2>Already using Luca on another phone?</h2>
+        {st.signedIn
+          ? <p>{st.syncing ? 'Loading data from Google Drive…' : st.error || 'No data found in Drive yet. Sync on the other phone first, or add your baby below.'}</p>
+          : <><p>Add the same sync key to load its data.</p><SyncKeyPicker /></>}
+      </section>
       <h2>New here?</h2>
       <p>Add your baby to get started.</p>
       <ChildForm onSaved={id => setSetting('childId', id)} />

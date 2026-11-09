@@ -131,7 +131,7 @@ function Stepper({ label, value, step, onChange }: { label: string; value: numbe
       <span>{label}</span>
       <div className="row">
         <button type="button" aria-label={`Decrease ${label}`} onClick={() => onChange(clamp(value - step))}>−</button>
-        <input type="number" inputMode="decimal" aria-label={label} min={0} step="any" value={value} onChange={e => onChange(clamp(+e.target.value))} />
+        <input type="number" inputMode="decimal" aria-label={label} min={0} step="any" placeholder="0" value={value || ''} onChange={e => onChange(clamp(+e.target.value))} />
         <button type="button" aria-label={`Increase ${label}`} onClick={() => onChange(clamp(value + step))}>+</button>
       </div>
     </div>

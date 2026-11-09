@@ -7,7 +7,7 @@ export const DEFAULTS = {
   clock: '24' as '12' | '24',
   theme: 'auto' as 'light' | 'dark' | 'auto',
   feedDefault: 'BREAST' as 'BREAST' | 'BOTTLE',
-  bottleStepMl: 10,
+  bottleStepMl: 5,
   wakeLock: true,
   backupEveryDays: 7,
   lastBackup: 0,

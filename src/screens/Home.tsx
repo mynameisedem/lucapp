@@ -119,7 +119,7 @@ export function Home({ kids }: { kids: Child[] }) {
           {recent.slice(-10).reverse().map(e => (
             <li key={e.id}>
               <a href={`#/event/${e.id}`} style={{ '--c': EVENT_META[e.type].color } as CSSProperties}>
-                <time>{fmtTime(e.startTime, s)}</time>
+                <time>{fmtTime(e.startTime, s)}{e.endTime && e.endTime > e.startTime ? `–${fmtTime(e.endTime, s)}` : ''}</time>
                 <span aria-hidden>{EVENT_META[e.type].icon}</span>
                 <span>{EVENT_META[e.type].label} <span className="muted">{describe(e, now, s)}</span></span>
               </a>

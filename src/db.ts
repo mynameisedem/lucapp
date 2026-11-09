@@ -51,7 +51,7 @@ export const EVENT_META: Record<EventType, { label: string; icon: string; color:
 export const defaultPayload = <T extends EventType>(type: T): Payloads[T] => ({
   SLEEP: {},
   BREAST: { leftMs: 0, rightMs: 0, side: null, sideSince: null },
-  BOTTLE: { ml: 90, contents: 'formula' },
+  BOTTLE: { ml: 60, contents: 'formula' },
   SOLIDS: { food: '' },
   DIAPER: { kind: 'wet' },
   PUMP: { leftMl: 0, rightMl: 0 },

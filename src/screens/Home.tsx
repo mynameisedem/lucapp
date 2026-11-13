@@ -1,6 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { formatDistanceStrict } from 'date-fns'
 import { addEvent, db, EVENT_META, nextBreastSide, runningTimers, startFeed, sideMs, startTimer, stopTimer, switchSide, type BabyEvent, type Child, type EventType } from '../db'
 import { go, useChild, useToast } from '../App'
 import { setSetting, useSettings } from '../settings'
@@ -54,7 +53,6 @@ export function Home({ kids }: { kids: Child[] }) {
   const panel = (p: Panel, body: () => ReactNode) => open === p && <div className="panel">{body()}</div>
 
   const nap = suggestNap(recent.filter(e => e.type === 'SLEEP'), child, now)
-  const backupDue = s.backupEveryDays > 0 && now - s.lastBackup > s.backupEveryDays * DAY
   const breast = <>
     <Big type="BREAST" label={s.feedDefault === 'BREAST' ? 'Feed' : 'Breastfeed'} active={!!runningOf('BREAST')} onClick={() => toggle('BREAST')} />
     {panel('BREAST', feedPanel)}
@@ -72,11 +70,6 @@ export function Home({ kids }: { kids: Child[] }) {
         <SyncLine />
       </header>
 
-      {backupDue && (
-        <a className="banner warn" href="#/backup">
-          {s.lastBackup ? `Last backup ${formatDistanceStrict(s.lastBackup, now)} ago.` : 'No backup yet.'} Tap to back up.
-        </a>
-      )}
 
       {running.filter(ev => ev.type !== open).map(ev => <TimerBanner key={ev.id} ev={ev} now={now} />)}
 
@@ -127,7 +120,7 @@ export function Home({ kids }: { kids: Child[] }) {
           ))}
         </ul>
       </section>
-      <p><a href="#/backup">Backup &amp; export</a></p>
+      <p><a href="#/backup">Export</a></p>
       <p className="version muted small">Luca v{__APP_VERSION__}</p>
     </>
   )

@@ -10,7 +10,7 @@ Personal-use, fully offline baby tracker built as a Progressive Web App (PWA): a
 - Show a clear daily timeline and simple trends
 - Suggest the next nap/bedtime from the baby's own recent data
 - Work fully offline after the first install, with all data on the phone
-- Manual backup and restore
+- Data safety via Google Drive sync (no manual backup)
 
 **Non-goals**
 

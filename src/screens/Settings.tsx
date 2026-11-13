@@ -27,7 +27,7 @@ export function SettingsScreen({ kids }: { kids: Child[] }) {
   return (
     <div className="form">
       <h1>Settings</h1>
-      <p><a href="#/backup">💾 Backup, restore &amp; export</a></p>
+      <p><a href="#/backup">💾 Export (CSV, PDF)</a></p>
 
       <h2>Children</h2>
       <ul className="list">
@@ -54,7 +54,6 @@ export function SettingsScreen({ kids }: { kids: Child[] }) {
       {select('feedDefault', 'Default feeding', [['BREAST', 'Breastfeeding'], ['BOTTLE', 'Bottle']])}
       {select('bottleStepMl', 'Bottle amount step', [[5, '5 ml'], [10, '10 ml'], [15, '15 ml'], [30, '30 ml']])}
       {select('wakeLock', 'Keep screen on while feeding', [[true, 'On'], [false, 'Off']])}
-      {select('backupEveryDays', 'Backup reminder', [[3, 'Every 3 days'], [7, 'Every 7 days'], [14, 'Every 14 days'], [0, 'Off']])}
 
       <h2>PIN lock</h2>
       <p className="muted">Convenience only; your phone's lock screen is the real protection.</p>

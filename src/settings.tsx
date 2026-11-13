@@ -9,8 +9,6 @@ export const DEFAULTS = {
   feedDefault: 'BREAST' as 'BREAST' | 'BOTTLE',
   bottleStepMl: 5,
   wakeLock: true,
-  backupEveryDays: 7,
-  lastBackup: 0,
   pinHash: '',
   childId: 0,
 }

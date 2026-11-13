@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { addEvent, db, nextBreastSide, runningTimers, startFeed, startTimer, stopTimer, switchSide } from './db'
-import { eventsCsv, exportJson, importJson } from './backup'
+import { eventsCsv } from './backup'
 
 beforeEach(async () => {
   await db.delete()
@@ -42,29 +42,7 @@ describe('breast side', () => {
   })
 })
 
-describe('backup', () => {
-  it('round-trips all data through JSON', async () => {
-    const childId = (await db.children.add({ name: 'Luca', birthDate: '2026-06-01' }))!
-    await addEvent(childId, 'DIAPER', { payload: { kind: 'both' }, notes: 'a, "b"' })
-    await startTimer(childId, 'SLEEP')
-    await db.growth.add({ childId, date: '2026-10-01', weightGrams: 6200 })
-    await db.settings.put({ key: 'units', value: 'imperial' })
-    const json = await exportJson()
-
-    await db.events.clear()
-    await db.children.clear()
-    await importJson(json)
-    const strip = (j: string) => ({ ...JSON.parse(j), exportedAt: 0 })
-    expect(strip(await exportJson())).toEqual(strip(json))
-    expect(await runningTimers(childId)).toHaveLength(1)
-  })
-
-  it('rejects foreign files without touching data', async () => {
-    await db.children.add({ name: 'Luca', birthDate: '2026-06-01' })
-    await expect(importJson('{"hello":1}')).rejects.toThrow('Not a Luca backup')
-    expect(await db.children.count()).toBe(1)
-  })
-
+describe('csv export', () => {
   it('escapes CSV cells', async () => {
     await addEvent(1, 'DIAPER', { startTime: 0, endTime: 0, payload: { kind: 'wet' }, notes: 'a, "b"' })
     const csv = eventsCsv(await db.events.toArray(), 'DIAPER')

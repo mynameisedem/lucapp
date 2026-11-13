@@ -1,36 +1,5 @@
 import { format } from 'date-fns'
-import { db, EVENT_META, markSyncTx, type BabyEvent, type EventType } from './db'
-
-const FORMAT = 'luca-backup'
-
-export async function exportJson() {
-  const [children, events, growth, settings] = await Promise.all([
-    db.children.toArray(), db.events.toArray(), db.growth.toArray(), db.settings.toArray(),
-  ])
-  return JSON.stringify({ format: FORMAT, version: db.verno, exportedAt: Date.now(), children, events, growth, settings })
-}
-
-/** Replaces all data with the backup. Validates the shape first so a wrong file cannot wipe the DB. */
-export async function importJson(text: string) {
-  const data = JSON.parse(text)
-  const arrays = ['children', 'events', 'growth', 'settings'] as const
-  if (data?.format !== FORMAT || !arrays.every(k => Array.isArray(data[k]))) throw new Error('Not a Luca backup file')
-  if (data.version > db.verno) throw new Error('Backup is from a newer app version; update the app first')
-  for (const e of data.events) {
-    if (typeof e.childId !== 'number' || typeof e.startTime !== 'number' || !(e.type in EVENT_META) || typeof e.payload !== 'object')
-      throw new Error('Backup contains an invalid event')
-  }
-  // Keeps the backup's edit stamps so a restore doesn't override newer edits from the other phone on sync.
-  const stamp = <T extends { uid?: string; updatedAt?: number }>(rows: T[]) => rows.map(r => ({ ...r, uid: r.uid ?? crypto.randomUUID(), updatedAt: r.updatedAt ?? 0 }))
-  await db.transaction('rw', [db.children, db.events, db.growth, db.settings], async tx => {
-    markSyncTx(tx)
-    await Promise.all([db.children.clear(), db.events.clear(), db.growth.clear(), db.settings.clear()])
-    await db.children.bulkAdd(stamp(data.children))
-    await db.events.bulkAdd(stamp(data.events))
-    await db.growth.bulkAdd(stamp(data.growth))
-    await db.settings.bulkPut(data.settings)
-  })
-}
+import type { BabyEvent, EventType } from './db'
 
 const csvCell = (v: unknown) => {
   const s = v == null ? '' : String(v)

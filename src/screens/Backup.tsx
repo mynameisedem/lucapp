@@ -1,17 +1,15 @@
 import { useState } from 'react'
 import { addDays, differenceInCalendarDays, format, parse } from 'date-fns'
 import { db, EVENT_META, type BabyEvent, type EventType } from '../db'
-import { useChild, useToast } from '../App'
-import { setSetting, useSettings } from '../settings'
-import { eventsCsv, exportJson, importJson, saveFile } from '../backup'
+import { useChild } from '../App'
+import { useSettings } from '../settings'
+import { eventsCsv, saveFile } from '../backup'
 import { average, rangeStats } from '../logic'
 import { fmtDur, volume } from '../format'
 
 const stamp = () => format(new Date(), 'yyyy-MM-dd')
 
 export function Backup() {
-  const s = useSettings()
-  const toast = useToast()
   const child = useChild()
   const [msg, setMsg] = useState('')
   const [range, setRange] = useState({ from: format(addDays(new Date(), -6), 'yyyy-MM-dd'), to: stamp() })
@@ -19,16 +17,6 @@ export function Backup() {
 
   const run = (f: () => Promise<unknown>) => f().catch(e => e.name !== 'AbortError' && setMsg(String(e.message ?? e)))
 
-  const exportAll = () => run(async () => {
-    await saveFile(`luca-backup-${stamp()}.json`, await exportJson(), 'application/json')
-    await setSetting('lastBackup', Date.now())
-    toast({ msg: 'Backup exported' })
-  })
-  const importFile = (file?: File) => file && run(async () => {
-    if (!confirm('Replace ALL data on this phone with the backup?')) return
-    await importJson(await file.text())
-    toast({ msg: 'Backup restored' })
-  })
   const csv = (type: EventType) => run(async () => {
     const events = await db.events.where('[childId+startTime]').between([child.id!, -Infinity], [child.id!, Infinity]).toArray()
     await saveFile(`luca-${type.toLowerCase()}-${stamp()}.csv`, eventsCsv(events, type), 'text/csv')
@@ -45,13 +33,7 @@ export function Backup() {
   return (
     <>
       <div className="no-print">
-        <h1>Backup</h1>
-        <p className="muted">All data lives only on this phone. Clearing Chrome's site data or uninstalling the app deletes it. Back up regularly.</p>
-        <p>Last backup: {s.lastBackup ? format(s.lastBackup, 'yyyy-MM-dd HH:mm') : 'never'}</p>
-        <button className="primary wide" onClick={exportAll}>Export backup (JSON)</button>
-        <label className="file-btn wide">Restore from backup…
-          <input type="file" accept="application/json,.json" onChange={e => { importFile(e.target.files?.[0]); e.target.value = '' }} />
-        </label>
+        <h1>Export</h1>
         {msg && <p className="error" role="alert">{msg}</p>}
 
         <h2>CSV export ({child.name})</h2>

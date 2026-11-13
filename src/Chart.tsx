@@ -1,12 +1,20 @@
+import { useState } from 'react'
 /** Tiny SVG charts; enough for daily bars and a growth line without a chart library. */
 export function Bars({ data, label, fmt, color }: { data: { x: string; y: number }[]; label: string; fmt: (v: number) => string; color: string }) {
+  const [sel, setSel] = useState<number>()
   const max = Math.max(...data.map(d => d.y), 1e-9)
   const w = 100 / data.length
+  const picked = sel !== undefined ? data[sel] : undefined
   return (
     <figure className="chart">
-      <figcaption>{label}</figcaption>
+      <figcaption>{label}{picked && <span className="pick"> · {picked.x}: {fmt(picked.y)}</span>}</figcaption>
       <svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={`${label}: ${data.map(d => `${d.x} ${fmt(d.y)}`).join(', ')}`}>
-        {data.map((d, i) => <rect key={i} x={i * w + w * 0.15} width={w * 0.7} y={40 - (d.y / max) * 38} height={(d.y / max) * 38} fill={color} rx={0.5} />)}
+        {data.map((d, i) => (
+          <g key={i} onClick={() => setSel(sel === i ? undefined : i)}>
+            <rect x={i * w} width={w} y={0} height={40} fill="transparent" />
+            <rect x={i * w + w * 0.15} width={w * 0.7} y={40 - (d.y / max) * 38} height={(d.y / max) * 38} fill={color} rx={0.5} opacity={sel === undefined || sel === i ? 1 : 0.4} />
+          </g>
+        ))}
       </svg>
       <div className="axis"><span>{data[0]?.x}</span><span>max {fmt(max)}</span><span>{data.at(-1)?.x}</span></div>
     </figure>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addDays, format, startOfDay } from 'date-fns'
+import { addDays, differenceInCalendarDays, format, parse, startOfDay } from 'date-fns'
 import { db, EVENT_META } from '../db'
 import { useChild } from '../App'
 import { useSettings } from '../settings'
@@ -8,18 +8,29 @@ import { fmtDur, volume } from '../format'
 import { average, rangeStats } from '../logic'
 import { Bars } from '../Chart'
 
-const TABS = { day: 1, week: 7, month: 30 } as const
+const TABS = { day: 1, week: 7, month: 30, custom: 0 } as const
+const TAB_LABEL = { day: 'Today', week: '7 days', month: '30 days', custom: 'Custom' }
+const ymd = (d: Date) => format(d, 'yyyy-MM-dd')
 
 export function Stats() {
   const s = useSettings()
   const cid = useChild().id!
   const [tab, setTab] = useState<keyof typeof TABS>('day')
-  const days = TABS[tab]
-  const today = startOfDay(new Date())
-  const from = addDays(today, -days).getTime() // one extra day for sleeps crossing midnight
-  const events = useLiveQuery(() => db.events.where('[childId+startTime]').between([cid, from], [cid, Infinity]).toArray(), [cid, from])
+  const [range, setRange] = useState({ from: ymd(addDays(new Date(), -6)), to: ymd(new Date()) })
+  const custom = tab === 'custom'
+  const lastDay = custom ? parse(range.to, 'yyyy-MM-dd', new Date()) : startOfDay(new Date())
+  const days = custom ? differenceInCalendarDays(lastDay, parse(range.from, 'yyyy-MM-dd', new Date())) + 1 : TABS[tab]
+  const from = addDays(lastDay, -days).getTime() // one extra day for sleeps crossing midnight
+  const to = addDays(lastDay, 1).getTime()
+  const events = useLiveQuery(() => db.events.where('[childId+startTime]').between([cid, from], [cid, to]).toArray(), [cid, from, to])
+  const picker = custom && (
+    <div className="row">
+      <label>From<input type="date" value={range.from} max={range.to} onChange={e => e.target.value && setRange({ ...range, from: e.target.value })} /></label>
+      <label>To<input type="date" value={range.to} min={range.from} onChange={e => e.target.value && setRange({ ...range, to: e.target.value })} /></label>
+    </div>
+  )
   if (!events) return null
-  const stats = rangeStats(events, today, days)
+  const stats = rangeStats(events, lastDay, Math.max(days, 1))
   const avg = average(stats)
   const d = stats.at(-1)!
   const label = (ms: number) => format(ms, 'd MMM')
@@ -29,10 +40,11 @@ export function Stats() {
       <h1>Stats</h1>
       <div className="chips" role="tablist">
         {(Object.keys(TABS) as (keyof typeof TABS)[]).map(t => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{t === 'day' ? 'Today' : t === 'week' ? '7 days' : '30 days'}</button>
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{TAB_LABEL[t]}</button>
         ))}
       </div>
-      {tab === 'day' ? (
+      {picker}
+      {days < 1 ? <p className="error">End date is before start date</p> : days === 1 ? (
         <dl className="kv card">
           <dt>Total sleep</dt><dd>{fmtDur(d.sleepMs)}</dd>
           <dt>Longest stretch</dt><dd>{fmtDur(d.longestSleepMs)}</dd>

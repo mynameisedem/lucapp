@@ -46,7 +46,7 @@ export function SettingsScreen({ kids }: { kids: Child[] }) {
       <DriveSync />
 
       <h2>Display</h2>
-      {select('units', 'Units', [['metric', 'Metric (ml, kg, cm)'], ['imperial', 'Imperial (oz, lb, in)']])}
+      {select('units', 'Units', [['metric', 'Metric (ml, g, cm)'], ['imperial', 'Imperial (oz, lb, in)']])}
       {select('clock', 'Time format', [['24', '24-hour'], ['12', '12-hour']])}
       {select('theme', 'Theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}
 

@@ -92,23 +92,18 @@ export function Home({ kids }: { kids: Child[] }) {
         <Big type="ACTIVITY" label="Activity" onClick={() => go('/event/new/ACTIVITY')} />
       </section>
 
-      {nap && (nap.sleeping || nap.to > now) && (
-        <section className="card">
-          <h2>Next nap</h2>
-          {nap.sleeping ? <p>Sleeping now.</p> : (
-            <p className="big">
-              {fmtTime(nap.from, s)} – {fmtTime(nap.to, s)}
-              <small> · wake window ~{nap.windowMin} min ({nap.basis === 'own' ? 'from recent days' : 'typical for age'})</small>
-            </p>
-          )}
-          <p className="muted">Rough guide only, not medical advice. Reminders show only while the app is open.</p>
-        </section>
+      {nap && !nap.sleeping && nap.to > now && (
+        <div className="big-btn nap" aria-label="Next nap">
+          <span aria-hidden className="icon">💤</span>
+          <span>Next nap {fmtTime(nap.from, s)} – {fmtTime(nap.to, s)}</span>
+          <small>wake window ~{nap.windowMin} min ({nap.basis === 'own' ? 'from recent days' : 'typical for age'})</small>
+        </div>
       )}
 
       <section className="card">
         <h2>Last</h2>
         {recent.length === 0 && <p className="muted">Nothing logged yet.</p>}
-        <ul className="list">
+        <ul className="list last">
           {recent.slice(-10).reverse().map(e => (
             <li key={e.id}>
               <a href={`#/event/${e.id}`} style={{ '--c': EVENT_META[e.type].color } as CSSProperties}>

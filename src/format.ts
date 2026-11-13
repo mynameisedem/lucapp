@@ -21,11 +21,11 @@ export const toMl = (v: number, s: Pick<Settings, 'units'>) => (s.units === 'imp
 export const fromMl = (ml: number, s: Pick<Settings, 'units'>) => (s.units === 'imperial' ? +(ml / ML_PER_OZ).toFixed(1) : ml)
 export const volUnit = (s: Pick<Settings, 'units'>) => (s.units === 'imperial' ? 'oz' : 'ml')
 
-// Growth: stored as grams/mm, shown as kg/cm or lb/in.
-export const weightUnit = (s: Pick<Settings, 'units'>) => (s.units === 'imperial' ? 'lb' : 'kg')
+// Growth: stored as grams/mm, shown as g/cm or lb/in.
+export const weightUnit = (s: Pick<Settings, 'units'>) => (s.units === 'imperial' ? 'lb' : 'g')
 export const lenUnit = (s: Pick<Settings, 'units'>) => (s.units === 'imperial' ? 'in' : 'cm')
-export const fromGrams = (g: number, s: Pick<Settings, 'units'>) => +(s.units === 'imperial' ? g / 453.592 : g / 1000).toFixed(2)
-export const toGrams = (v: number, s: Pick<Settings, 'units'>) => Math.round(s.units === 'imperial' ? v * 453.592 : v * 1000)
+export const fromGrams = (g: number, s: Pick<Settings, 'units'>) => (s.units === 'imperial' ? +(g / 453.592).toFixed(2) : g)
+export const toGrams = (v: number, s: Pick<Settings, 'units'>) => Math.round(s.units === 'imperial' ? v * 453.592 : v)
 export const fromMm = (mm: number, s: Pick<Settings, 'units'>) => +(s.units === 'imperial' ? mm / 25.4 : mm / 10).toFixed(1)
 export const toMm = (v: number, s: Pick<Settings, 'units'>) => Math.round(s.units === 'imperial' ? v * 25.4 : v * 10)
 

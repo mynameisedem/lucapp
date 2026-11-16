@@ -145,7 +145,7 @@ function TimerBanner({ ev, now, onStopped }: { ev: BabyEvent; now: number; onSto
   return (
     <section className="banner timer" style={{ '--c': m.color } as CSSProperties} aria-live="off">
       <a href={`#/event/${ev.id}`} className="timer-main">
-        <span aria-hidden>{m.icon}</span> {m.label} <strong className="clock">{fmtClock(now - ev.startTime)}</strong>
+        <span aria-hidden>{m.icon}</span> {m.label} <strong className="clock">{fmtClock(ev.type === 'BREAST' ? sideMs(ev.payload, 'L', now) + sideMs(ev.payload, 'R', now) : now - ev.startTime)}</strong>
       </a>
       {ev.type === 'BREAST' && (
         <div className="sides">
@@ -156,6 +156,9 @@ function TimerBanner({ ev, now, onStopped }: { ev: BabyEvent; now: number; onSto
           ))}
         </div>
       )}
+      {ev.type === 'BREAST' && (ev.payload.side
+        ? <button className="pause" onClick={() => side(ev.payload.side!)}>Pause</button>
+        : ev.payload.lastSide && <button className="continue" onClick={() => side(ev.payload.lastSide!)}>Continue</button>)}
       <button className="primary stop" onClick={stop}>Stop</button>
     </section>
   )

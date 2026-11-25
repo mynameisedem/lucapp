@@ -104,7 +104,8 @@ test('védőnő questionnaire is offered when due and keeps answers', async ({ p
 
 test('all questionnaires are reachable from the tab bar', async ({ page }) => {
   await setup(page)
-  await page.getByRole('link', { name: 'Kérdőív', exact: true }).click()
+  await page.getByRole('link', { name: 'Forms', exact: true }).click()
+  await page.screenshot({ path: process.env.SHOT ?? 'test-results/forms.png' })
   await page.getByRole('link', { name: /9 hónapos kor/ }).click()
   await expect(page.getByRole('heading', { name: '9 hónapos kor' })).toBeVisible()
 })

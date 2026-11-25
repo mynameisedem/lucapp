@@ -88,7 +88,7 @@ function Shell({ s }: { s: Settings }) {
           </div>
         )}
         <nav className="tabs" aria-label="Main">
-          {[['', '🏠', 'Home'], ['timeline', '📅', 'Timeline'], ['stats', '📊', 'Stats'], ['growth', '📈', 'Growth'], ['surveys', '📝', 'Kérdőív'], ['vaccines', '💉', 'Oltás'], ['settings', '⚙️', 'More']].map(([p, icon, label]) => (
+          {[['', '🏠', 'Home'], ['timeline', '📅', 'Timeline'], ['stats', '📊', 'Stats'], ['growth', '📈', 'Growth'], ['surveys', '📝', 'Forms'], ['vaccines', '💉', 'Vaccines'], ['settings', '⚙️', 'More']].map(([p, icon, label]) => (
             <a key={p} href={'#/' + p} aria-current={(screen ?? '') === p ? 'page' : undefined}>
               <span aria-hidden>{icon}</span>{label}
             </a>

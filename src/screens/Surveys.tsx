@@ -1,12 +1,9 @@
 import { db } from '../db'
 import { useChild } from '../App'
-import { useNow } from '../hooks'
-import { ANSWERS, answeredCount, dueFrom, dueSurvey, SURVEYS, type Answer } from '../surveys'
+import { ANSWERS, answeredCount, dueFrom, SURVEYS, type Answer } from '../surveys'
 
 export function Surveys({ month }: { month?: string }) {
   const child = useChild()
-  const now = useNow(60_000)
-  const due = dueSurvey(child.birthDate, now)
   const survey = SURVEYS.find(s => String(s.month) === month)
   const from = (m: number) => dueFrom(child.birthDate, m)
 
@@ -14,15 +11,18 @@ export function Surveys({ month }: { month?: string }) {
     <>
       <h1>Védőnői kérdőívek</h1>
       <p className="muted small">Szülői kérdőív a védőnői szűrővizsgálathoz. A 3 hónapos vizsgálathoz nincs szülői kérdőív.</p>
-      <ul className="list">
-        {SURVEYS.map(s => (
-          <li key={s.month}>
-            <a href={`#/surveys/${s.month}`}>
-              <span>{s.title}{s === due && <strong> · most esedékes</strong>}</span>
-              <span className="muted">{from(s.month)} · {answeredCount(child.surveys?.[s.month])}/{s.questions.length}</span>
-            </a>
-          </li>
-        ))}
+      <ul className="zebra">
+        {SURVEYS.map(s => {
+          const n = answeredCount(child.surveys?.[s.month])
+          return (
+            <li key={s.month}>
+              <a href={`#/surveys/${s.month}`}>
+                <span><strong>{s.title}</strong><small className="muted">esedékes {from(s.month)}-tól</small></span>
+                <span className={n === s.questions.length ? 'pill done' : 'pill'}>{n}/{s.questions.length}</span>
+              </a>
+            </li>
+          )
+        })}
       </ul>
     </>
   )

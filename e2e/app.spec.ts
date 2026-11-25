@@ -83,3 +83,48 @@ test('shortcut starts sleep', async ({ page }) => {
   await page.goto('/#/quick/sleep')
   await expect(page.locator('.timer')).toContainText('Sleep')
 })
+
+test('védőnő questionnaire is offered when due and keeps answers', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-25T10:00'))
+  await page.goto('/')
+  await page.getByLabel('Name').fill('Luca')
+  await page.getByLabel('Birth date').fill('2026-07-20')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await page.getByRole('link', { name: /Védőnői kérdőív esedékes: 4 hónapos kor/ }).click()
+  const q2 = page.getByRole('radiogroup', { name: '2. kérdés', exact: true })
+  await q2.getByRole('radio', { name: 'Néha' }).click()
+  await expect(page.getByText('1/12 kitöltve')).toBeVisible()
+  await page.reload()
+  await expect(q2.getByRole('radio', { name: 'Néha' })).toHaveAttribute('aria-checked', 'true')
+  await q2.getByRole('radio', { name: 'Néha' }).click() // tap again clears
+  await expect(page.getByText('0/12 kitöltve')).toBeVisible()
+  await page.screenshot({ path: process.env.SHOT ?? 'test-results/survey.png', fullPage: false })
+})
+
+test('all questionnaires are reachable from the tab bar', async ({ page }) => {
+  await setup(page)
+  await page.getByRole('link', { name: 'Kérdőív', exact: true }).click()
+  await page.getByRole('link', { name: /9 hónapos kor/ }).click()
+  await expect(page.getByRole('heading', { name: '9 hónapos kor' })).toBeVisible()
+})
+
+test('vaccines: check off, edit date, booked appointment reminds the day before', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-25T10:00'))
+  await page.goto('/')
+  await page.getByLabel('Name').fill('Luca')
+  await page.getByLabel('Birth date').fill('2026-11-20')
+  await page.getByRole('button', { name: 'Save' }).click()
+
+  await page.getByRole('link', { name: /Oltás esedékes.*BCG/ }).click()
+  await page.getByRole('checkbox', { name: /BCG/ }).click()
+  await expect(page.getByRole('checkbox', { name: /BCG/ })).toBeChecked()
+  await expect(page.getByLabel('BCG beadás dátuma')).toHaveValue('2026-11-25')
+  await page.getByLabel('BCG beadás dátuma').fill('2026-11-21')
+  await page.getByLabel('2 hó előjegyzés', { exact: true }).fill('2026-11-26T10:30')
+  await page.reload()
+  await expect(page.getByLabel('BCG beadás dátuma')).toHaveValue('2026-11-21')
+  await page.screenshot({ path: process.env.SHOT ?? 'test-results/vaccines.png' })
+  await page.getByRole('link', { name: 'Home' }).click()
+  await expect(page.getByRole('link', { name: /Oltás holnap 10:30 \(2 hó\): Pentaxim \(I\.\), Prevenar13 \(I\.\), Rotateq \(I\.\)/ })).toBeVisible()
+})

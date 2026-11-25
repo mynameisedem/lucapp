@@ -8,6 +8,9 @@ import { useNow } from '../hooks'
 import { suggestNap } from '../logic'
 import { describe } from './Timeline'
 import { SyncLine } from './Settings'
+import { answeredCount, dueSurvey } from '../surveys'
+import { isToday } from 'date-fns'
+import { fmtDate, vaccineDue, vaccineReminder } from '../vaccines'
 
 const DAY = 86_400_000
 type Panel = 'SLEEP' | 'BREAST' | 'DIAPER' | null
@@ -52,6 +55,8 @@ export function Home({ kids }: { kids: Child[] }) {
   }
   const panel = (p: Panel, body: () => ReactNode) => open === p && <div className="panel">{body()}</div>
 
+  const survey = dueSurvey(child.birthDate, now)
+  const vaccine = vaccineReminder(child, now)
   const nap = suggestNap(recent.filter(e => e.type === 'SLEEP'), child, now)
   const breast = <>
     <Big type="BREAST" label={s.feedDefault === 'BREAST' ? 'Feed' : 'Breastfeed'} active={!!runningOf('BREAST')} onClick={() => toggle('BREAST')} />
@@ -98,6 +103,17 @@ export function Home({ kids }: { kids: Child[] }) {
           <span>Next nap {fmtTime(nap.from, s)} – {fmtTime(nap.to, s)}</span>
           <small>wake window ~{nap.windowMin} min ({nap.basis === 'own' ? 'from recent days' : 'typical for age'})</small>
         </div>
+      )}
+
+      {survey && answeredCount(child.surveys?.[survey.month]) < survey.questions.length && (
+        <p><a href={`#/surveys/${survey.month}`}>📝 Védőnői kérdőív esedékes: {survey.title}</a></p>
+      )}
+
+      {vaccine && (
+        <p><a href="#/vaccines">💉 {vaccine.at
+          ? `Oltás ${isToday(vaccine.at) ? 'ma' : 'holnap'} ${fmtTime(vaccine.at, s)} (${vaccine.row.age})`
+          : `Oltás esedékes (${vaccine.row.age}, ${fmtDate(vaccineDue(child.birthDate, vaccine.row.month))})`
+        }: {vaccine.row.doses.filter(d => (vaccine.at || !d.optional) && !child.vaccines?.[d.id]).map(d => d.name).join(', ')}</a></p>
       )}
 
       <section className="card">

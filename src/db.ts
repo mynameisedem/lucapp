@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table, type Transaction } from 'dexie'
+import type { Answer } from './surveys'
 
 export type EventType = 'SLEEP' | 'BREAST' | 'BOTTLE' | 'SOLIDS' | 'DIAPER' | 'PUMP' | 'MED' | 'ACTIVITY'
 
@@ -30,7 +31,8 @@ type EventOf<T extends EventType> = {
 }
 export type BabyEvent = { [T in EventType]: EventOf<T> }[EventType]
 
-export interface Child { id?: number; uid?: string; updatedAt?: number; name: string; birthDate: string /* yyyy-MM-dd */ }
+// surveys/vaccines: védőnő questionnaire answers and vaccination dates; kept on the child row so it syncs with no schema change.
+export interface Child { id?: number; uid?: string; updatedAt?: number; name: string; birthDate: string /* yyyy-MM-dd */; surveys?: Record<number, (Answer | null)[]>; vaccines?: Record<string, string /* dose id → date given */>; vaccineAppts?: Record<string, string /* plan month → yyyy-MM-ddTHH:mm */> }
 export interface Growth { id?: number; uid?: string; updatedAt?: number; childId: number; date: string; weightGrams?: number; lengthMm?: number; headMm?: number }
 export interface Tombstone { uid: string; deletedAt: number }
 export interface Setting { key: string; value: unknown }

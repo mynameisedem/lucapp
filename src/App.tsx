@@ -11,6 +11,8 @@ import { Backup } from './screens/Backup'
 import { SettingsScreen, ChildForm, SyncKeyPicker, sha256 } from './screens/Settings'
 import { useSyncStatus } from './drive'
 import { Quick } from './screens/Quick'
+import { Surveys } from './screens/Surveys'
+import { Vaccines } from './screens/Vaccines'
 
 export const go = (path: string) => { location.hash = '#' + path }
 
@@ -68,6 +70,8 @@ function Shell({ s }: { s: Settings }) {
     case 'growth': page = <Growth />; break
     case 'backup': page = <Backup />; break
     case 'settings': page = <SettingsScreen kids={children} />; break
+    case 'vaccines': page = <Vaccines />; break
+    case 'surveys': page = <Surveys month={args[0]} />; break
     case 'quick': page = <Quick what={args[0]} />; break
     default: page = <Home kids={children} />
   }
@@ -84,7 +88,7 @@ function Shell({ s }: { s: Settings }) {
           </div>
         )}
         <nav className="tabs" aria-label="Main">
-          {[['', '🏠', 'Home'], ['timeline', '📅', 'Timeline'], ['stats', '📊', 'Stats'], ['growth', '📈', 'Growth'], ['settings', '⚙️', 'More']].map(([p, icon, label]) => (
+          {[['', '🏠', 'Home'], ['timeline', '📅', 'Timeline'], ['stats', '📊', 'Stats'], ['growth', '📈', 'Growth'], ['surveys', '📝', 'Kérdőív'], ['vaccines', '💉', 'Oltás'], ['settings', '⚙️', 'More']].map(([p, icon, label]) => (
             <a key={p} href={'#/' + p} aria-current={(screen ?? '') === p ? 'page' : undefined}>
               <span aria-hidden>{icon}</span>{label}
             </a>

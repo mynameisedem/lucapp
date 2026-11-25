@@ -128,3 +128,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sync-line { margin-left: auto; color: var(--muted); text-decoration: none; }
 header.row { justify-content: space-between; }
 .version { text-align: center; }
+.survey { list-style: none; padding: 0; margin: 0; }
+.survey p { margin: 0; }
+.vaccine { border-top: 1px solid var(--line); padding: .4rem 0; }
+.vaccine label { flex-wrap: nowrap; }
+.vaccine input[type='checkbox'] { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; min-height: 0; }
+.vaccine input[type='date'], .vaccine input[type='datetime-local'] { flex: 1; }
